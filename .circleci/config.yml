@@ -1,0 +1,40 @@
+version: 2.1
+
+orbs:
+  terraform: circleci/terraform@3.2.1
+  python: circleci/python@2.1.1
+  tfsec: mycodeself/tfsec@1.1.0
+
+jobs:
+  pre-commit:
+    executor: python/default
+    steps:
+      - checkout
+      - run:
+          name: Install Pre-Commit
+          command: |
+            pip3 install --user pre-commit
+      - run:
+          name: Run-all Pre-Commit
+          command: |
+            pre-commit run --all-files
+  tfsec:
+    docker:
+      image: tfsec/default
+    steps:
+      - tfsec/scan:
+          directory: modules
+
+  # TODO: Once terratest is added, include a terratest job
+  # Types of tests to include are:
+  # - Unit
+  # - Integration
+  # - End-to-End
+  # - `plan`
+  # - Policy Checks (OPA)
+
+workflows:
+  automated-tests:
+    jobs:
+      - pre-commit
+      - tfsec
