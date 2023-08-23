@@ -1,0 +1,51 @@
+# ------------------------------------------------------------------------------
+# DEPLOY AN ADMIN SPACELIFT STACK WITHOUT AN AWS INTEGRATION
+#
+# This example shows how to deploy an admin spacelift stack without an AWS
+# integration. This is useful if you want to use the stack to deploy other space-
+# lift stacks and resources, but don't want to deploy any AWS resources with the
+# stack itself.
+# ------------------------------------------------------------------------------
+
+terraform {
+  required_version = "~= 1.5.5"
+}
+
+
+# --------------------------------------------------
+# CONFIGURE OUR AWS CONNECTION
+# --------------------------------------------------
+
+provider "aws" {
+  region = var.aws_region
+}
+
+
+# --------------------------------------------------
+# CONFIGURE OUR SPACELIFT CONNECTION
+# --------------------------------------------------
+
+provider "spacelift" {
+  api_key_endpoint = var.api_key_endpoint
+  api_key_id       = var.spacelift_key_id
+  api_key_secret   = var.spacelift_key_secret
+}
+
+
+# --------------------------------------------------
+# DEPLOY THE STACK MODULE
+# --------------------------------------------------
+
+module "stack" {
+  source = "../../modules/cicd-pipelines/spacelift-stack"
+
+  stack_name = "deploy-admin-spacelift-stack-example"
+
+  repository = var.repository
+  branch     = var.branch
+
+  create_iam_role = false
+
+  enable_admin_stack      = true
+  enable_state_management = true
+}
