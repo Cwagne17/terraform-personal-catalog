@@ -19,8 +19,7 @@ jobs:
           command: |
             pre-commit run --all-files
   tfsec:
-    docker:
-      - image: tfsec/default
+    executor: tfsec/default
     steps:
       - tfsec/scan:
           directory: modules
