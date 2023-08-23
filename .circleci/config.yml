@@ -7,8 +7,13 @@ orbs:
 
 jobs:
   pre-commit:
-    executor: terraform/default
+    executor: python/default
     steps:
+      - terraform/install
+      - run:
+          name: Install TFlint
+          command: |
+            curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
       - checkout
       - run:
           name: Install Pre-Commit
