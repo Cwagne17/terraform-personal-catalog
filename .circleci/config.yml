@@ -7,7 +7,7 @@ orbs:
 
 jobs:
   pre-commit:
-    executor: python/default
+    executor: terraform/default
     steps:
       - checkout
       - run:
