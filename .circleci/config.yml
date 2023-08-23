@@ -26,8 +26,9 @@ jobs:
   tfsec:
     executor: tfsec/default
     steps:
+      - checkout
       - tfsec/scan:
-          directory: "$CIRCLE_PROJECT_REPONAME/modules"
+          directory: modules
 
   # TODO: Once terratest is added, include a terratest job
   # Types of tests to include are:
