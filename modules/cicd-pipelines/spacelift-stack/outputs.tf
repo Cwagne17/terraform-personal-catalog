@@ -3,11 +3,11 @@ output "stack_id" {
 }
 
 output "stack_iam_role_id" {
-  value = aws_iam_role.this.id
+  value = length(aws_iam_role.this) == 1 ? aws_iam_role.this[1].id : null
 }
 
 output "stack_iam_role_arn" {
-  value = aws_iam_role.this.arn
+  value = length(aws_iam_role.this) == 1 ? aws_iam_role.this[1].arn : null
 }
 
 output "stack_iam_role_policy_arns" {

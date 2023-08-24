@@ -39,6 +39,12 @@ variable "autodeploy" {
   default     = false
 }
 
+variable "context_ids" {
+  description = "List of Spacelift context IDs to attach to the stack"
+  type        = list(string)
+  default     = []
+}
+
 variable "create_iam_role" {
   description = "Whether to create an IAM role for the stack"
   type        = bool
@@ -63,6 +69,16 @@ variable "enable_state_management" {
   default     = false
 }
 
+variable "environment_variables" {
+  description = "Stack scoped environment variables to set for the stack"
+  type = list(object({
+    name      = string
+    value     = string
+    sensitive = bool
+  }))
+  default = []
+}
+
 variable "iam_role_policy_arns" {
   description = "IAM role policy ARNs to attach to the stack's IAM role. The IAM role will be created if create_iam_role is true. The policies ARNs can either be ARNs of AWS managed policies or custom policies."
   type        = list(string)
@@ -75,10 +91,37 @@ variable "labels" {
   default     = []
 }
 
+variable "mounted_files" {
+  description = "Stack scoped mounted files to set for the stack"
+  type = list(object({
+    path          = string
+    relative_path = string
+  }))
+  default = []
+}
+
+variable "policy_ids" {
+  description = "List of Spacelift policy IDs to attach to the stack"
+  type        = list(string)
+  default     = []
+}
+
 variable "project_root" {
   description = "Path to the root of the project"
   type        = string
   default     = null
+}
+
+variable "protect_from_deletion" {
+  description = "Whether to protect the stack from deletion. This value should only be changed if you understand the implications of doing so."
+  type        = bool
+  default     = true
+}
+
+variable "stack_dependency_ids" {
+  description = "List of stack IDs to depend on"
+  type        = list(string)
+  default     = []
 }
 
 variable "terraform_version" {

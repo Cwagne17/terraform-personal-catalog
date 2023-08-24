@@ -17,11 +17,11 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "=> 5.0"
+      version = ">= 5.0"
     }
     spacelift = {
       source  = "spacelift-io/spacelift"
-      version = "=> 0.1.11"
+      version = ">= 1.1.9"
     }
   }
 }
@@ -46,9 +46,8 @@ locals {
 # -------------------------------------------
 
 resource "spacelift_stack" "this" {
-
   dynamic "terragrunt" {
-    for_each = var.terragrunt_version ? [var.terragrunt_version] : []
+    for_each = var.terragrunt_version != null ? [1] : []
 
     content {
       terraform_version      = var.terraform_version
@@ -66,12 +65,93 @@ resource "spacelift_stack" "this" {
   manage_state          = var.enable_state_management
   name                  = var.stack_name
   project_root          = var.project_root
-  protect_from_deletion = true
+  protect_from_deletion = var.protect_from_deletion
   repository            = var.repository
 
   terraform_smart_sanitization = true
   terraform_version            = var.terraform_version
 
+}
+
+
+# ---------------------------------------------------
+# DEFINE THE SPACELIFT STACK ENVIRONMENT VARIABLES
+# ---------------------------------------------------
+
+resource "spacelift_environment_variable" "this" {
+  count = length(var.environment_variables)
+
+  stack_id = spacelift_stack.this.id
+
+  name       = var.environment_variables[count.index].name
+  value      = var.environment_variables[count.index].value
+  write_only = try(var.environment_variables[count.index].sensitive, false)
+}
+
+
+# ---------------------------------------------------
+# DEFINE THE SPACELIFT STACK MOUNTED FILES
+# ---------------------------------------------------
+
+resource "spacelift_mounted_file" "this" {
+  count = length(var.mounted_files)
+
+  stack_id = spacelift_stack.this.id
+
+  content       = filebase64("${path.module}/${var.mounted_files[count.index].path}")
+  relative_path = var.mounted_files[count.index].relative_path
+}
+
+
+# ---------------------------------------------------
+# ATTACH THE SPACELIFT CONTEXT TO THE STACK
+# ---------------------------------------------------
+
+resource "spacelift_context_attachment" "this" {
+  count = length(var.context_ids)
+
+  context_id = var.context_ids[count.index]
+  stack_id   = spacelift_stack.this.id
+
+  priority = count.index
+}
+
+
+# ---------------------------------------------------
+# ATTACH THE SPACELIFT POLICIES TO THE STACK
+# ---------------------------------------------------
+
+resource "spacelift_policy_attachment" "this" {
+  count = length(var.policy_ids)
+
+  policy_id = var.policy_ids[count.index]
+  stack_id  = spacelift_stack.this.id
+}
+
+# ---------------------------------------------------
+# CREATE STACK DESTRUCTOR
+# ---------------------------------------------------
+
+resource "spacelift_stack_destructor" "this" {
+  depends_on = [
+    spacelift_environment_variable.this,
+    spacelift_mounted_file.this,
+    spacelift_policy_attachment.this,
+    spacelift_context_attachment.this,
+  ]
+
+  stack_id = spacelift_stack.this.id
+}
+
+# ---------------------------------------------------
+# ADD ANY STACK DEPENDENCIES
+# ---------------------------------------------------
+
+resource "spacelift_stack_dependency" "this" {
+  count = length(var.stack_dependency_ids)
+
+  stack_id            = spacelift_stack.this.id
+  depends_on_stack_id = var.stack_dependency_ids[count.index]
 }
 
 
@@ -93,7 +173,7 @@ resource "spacelift_aws_integration" "this" {
 data "spacelift_aws_integration_attachment_external_id" "this" {
   count = var.create_iam_role ? 1 : 0
 
-  integration_id = spacelift_aws_integration.this.id
+  integration_id = spacelift_aws_integration.this[1].id
   stack_id       = spacelift_stack.this.id
   read           = true
   write          = true
@@ -107,7 +187,7 @@ resource "aws_iam_role" "this" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
-      jsondecode(data.spacelift_aws_integration_attachment_external_id.this.assume_role_policy_statement),
+      jsondecode(data.spacelift_aws_integration_attachment_external_id.this[1].assume_role_policy_statement),
     ]
   })
 }
@@ -117,19 +197,10 @@ resource "aws_iam_role" "this" {
 # ---------------------------------------------------
 
 resource "aws_iam_role_policy_attachment" "this" {
-  # We need to attach each policy only if the role is created.
-  for_each = {
-    for i, policy_arn in var.iam_role_policy_arns :
-    i => policy_arn
-    if var.create_iam_role
-  }
+  count = var.create_iam_role ? length(var.iam_role_policy_arns) : 0
 
-  role       = aws_iam_role.this.id
-  policy_arn = each.value
-
-  depends_on = [
-    aws_iam_role.this
-  ]
+  role       = aws_iam_role.this[1].id
+  policy_arn = var.iam_role_policy_arns[count.index]
 }
 
 # ---------------------------------------------------
@@ -137,13 +208,15 @@ resource "aws_iam_role_policy_attachment" "this" {
 # ---------------------------------------------------
 
 resource "spacelift_aws_integration_attachment" "this" {
-  integration_id = spacelift_aws_integration.this.id
+  count = var.create_iam_role ? 1 : 0
+
+  integration_id = spacelift_aws_integration.this[1].id
   stack_id       = spacelift_stack.this.id
   read           = true
   write          = true
 
   # The role needs to exist before we attach since we test role assumption during attachment.
   depends_on = [
-    aws_iam_role.this
+    aws_iam_role.this,
   ]
 }
