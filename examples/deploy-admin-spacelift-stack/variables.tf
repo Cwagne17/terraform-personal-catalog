@@ -19,6 +19,11 @@
 
 # --------------------------------------------------------------------
 
+variable "api_key_endpoint" {
+  description = "The Spacelift API endpoint to use for authenticating to the Spacelift API."
+  type        = string
+}
+
 variable "branch" {
   description = "GitHub branch to apply changes to"
   type        = string
@@ -26,6 +31,16 @@ variable "branch" {
 
 variable "repository" {
   description = "Name of the repository, without the owner part"
+  type        = string
+}
+
+variable "spacelift_key_id" {
+  description = "The Spacelift API key ID to use for authenticating to the Spacelift API."
+  type        = string
+}
+
+variable "spacelift_key_secret" {
+  description = "The Spacelift API key secret to use for authenticating to the Spacelift API."
   type        = string
 }
 
