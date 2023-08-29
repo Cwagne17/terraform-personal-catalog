@@ -59,4 +59,8 @@ module "stack" {
 
   enable_admin_stack      = true
   enable_state_management = true
+
+  # We want to be able to apply/delete in tests without having errors
+  # in most cases, you will want to keep the default of `true`
+  protect_from_deletion = false
 }
